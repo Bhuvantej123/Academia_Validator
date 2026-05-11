@@ -71,42 +71,34 @@ async def process_document(job_id: str, file_path: Path, db: AsyncSession):
         job.status = "running"
         await db.commit()
 
-        # 2. Extract Text
-        raw_text = extractor.extract(file_path)
-        
-        # 3. Preprocess
-        prep_data = preprocessor.process(raw_text)
-        sentences = prep_data["sentences"]
-        job.word_count = prep_data["word_count"]
-        
-        # If text is too short, abort gracefully
-        if len(sentences) < 5:
-            raise ValueError("Document is too short for meaningful analysis (< 5 sentences).")
+        # Offload blocking ML models and PDF generation to a worker thread
+        def run_heavy_computation():
+            raw_text = extractor.extract(file_path)
+            prep_data = preprocessor.process(raw_text)
+            
+            if len(prep_data["sentences"]) < 5:
+                raise ValueError("Document is too short for meaningful analysis (< 5 sentences).")
+                
+            plag = plagiarism_detector.analyse(prep_data["sentences"])
+            ai = ai_detector.analyse(prep_data["sentences"])
+            auth = authorship_validator.analyse(prep_data["sentences"])
+            
+            score = scoring_engine.calculate_authenticity(plag, ai, auth)
+            
+            report = report_generator.generate_json_report(
+                job_id, job.filename, prep_data["word_count"],
+                score, plag, ai, auth
+            )
+            
+            pdf = REPORT_DIR / f"{job_id}.pdf"
+            report_generator.generate_pdf_report(report, pdf)
+            
+            return prep_data, plag, ai, auth, score, report, pdf
 
-        # 4. Run Analysis Modules (can be run via asyncio.gather if models allow concurrency,
-        # but here we run sequentially to avoid overloading CPU/RAM for the prototype)
-        log.info(f"[{job_id}] Running Plagiarism Detection...")
-        plag_res = plagiarism_detector.analyse(sentences)
+        log.info(f"[{job_id}] Running heavy analysis in background thread...")
+        prep_data, plag_res, ai_res, auth_res, score_data, report_data, pdf_path = await asyncio.to_thread(run_heavy_computation)
         
-        log.info(f"[{job_id}] Running AI Detection...")
-        ai_res = ai_detector.analyse(sentences)
-        
-        log.info(f"[{job_id}] Running Authorship Validation...")
-        auth_res = authorship_validator.analyse(sentences)
-        
-        # 5. Calculate Final Scores
-        log.info(f"[{job_id}] Scoring...")
-        score_data = scoring_engine.calculate_authenticity(plag_res, ai_res, auth_res)
-        
-        # 6. Generate Reports
-        log.info(f"[{job_id}] Generating Reports...")
-        report_data = report_generator.generate_json_report(
-            job_id, job.filename, job.word_count,
-            score_data, plag_res, ai_res, auth_res
-        )
-        
-        pdf_path = REPORT_DIR / f"{job_id}.pdf"
-        report_generator.generate_pdf_report(report_data, pdf_path)
+        job.word_count = prep_data["word_count"]
 
         # 7. Update DB with final results
         job.status = "done"

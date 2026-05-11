@@ -44,4 +44,5 @@ class AnalysisJob(Base):
             "plagiarism_score":        self.plagiarism_score,
             "ai_probability":          self.ai_probability,
             "authorship_consistency":  self.authorship_consistency,
+            "error_msg":               self.error_msg,
         }

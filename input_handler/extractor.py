@@ -35,9 +35,9 @@ class TextExtractor:
             import fitz  # PyMuPDF
             doc = fitz.open(str(path))
             pages = [page.get_text("text") for page in doc]
-            doc.close()
             text = "\n".join(pages)
             log.debug(f"PDF extracted: {len(text)} chars from {doc.page_count} pages")
+            doc.close()
             return text
         except ImportError:
             # Fallback: pdfminer

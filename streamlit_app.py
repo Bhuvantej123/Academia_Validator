@@ -232,7 +232,7 @@ if uploaded_file is not None:
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        start_btn = st.button("Analyze Document", type="primary", use_container_width=True)
+        start_btn = st.button("Analyze Document", type="primary", width="stretch")
         
     if start_btn:
         with st.container():
@@ -248,28 +248,47 @@ if uploaded_file is not None:
                     job_id = response.json().get("job_id")
                     
                     # 2. Poll for status
-                    progress_bar = st.progress(0)
-                    
                     is_done = False
+                    
                     for i in range(100):
                         time.sleep(1)
-                        progress_bar.progress(min(i * 5, 95))
                         
                         status_res = httpx.get(f"{API_BASE}/status/{job_id}", timeout=10.0)
                         if status_res.status_code == 200:
                             status_data = status_res.json()
                             status = status_data.get("status")
                             
-                            if status == "running":
-                                status_container.info("Analyzing semantics and stylometry...")
+                            if status in ["running", "pending"]:
+                                # Animate loading text
+                                dots = "." * ((i % 3) + 1)
+                                phases = [
+                                    "ESTABLISHING SECURE CONNECTION",
+                                    "EXTRACTING NEURAL EMBEDDINGS",
+                                    "COMPARING AGAINST KNOWN CORPUS",
+                                    "ANALYZING STYLOMETRIC FINGERPRINTS",
+                                    "DETECTING SYNTHETIC ARTIFACTS",
+                                    "COMPILING FINAL INTELLIGENCE REPORT"
+                                ]
+                                phase = phases[min(i // 4, len(phases) - 1)]
+                                
+                                loading_html = f"""
+                                <div class="glass-card" style="text-align: center; padding: 60px 20px; border-color: #00f0ff; box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);">
+                                    <span class="material-symbols-outlined" style="color: #00f0ff; font-size: 48px; display: block; margin-bottom: 20px;">radar</span>
+                                    <h2 style="color: #00f0ff; font-family: 'Space Grotesk'; letter-spacing: 2px;">PROCESSING DOCUMENT</h2>
+                                    <p style="color: #a0a0a0; font-family: 'JetBrains Mono'; font-size: 14px; margin-top: 10px;">> {phase}{dots}</p>
+                                    <div style="width: 60%; margin: 30px auto 0; height: 2px; background: #333; position: relative; overflow: hidden;">
+                                        <div style="width: {min((i/15)*100, 98)}%; height: 100%; background: #00f0ff; transition: width 1s linear;"></div>
+                                    </div>
+                                </div>
+                                """
+                                status_container.markdown(loading_html, unsafe_allow_html=True)
+                                
                             elif status == "done":
-                                progress_bar.progress(100)
                                 status_container.empty()
                                 is_done = True
-                                time.sleep(0.5)
-                                progress_bar.empty()
                                 break
                             elif status == "error":
+                                status_container.empty()
                                 st.error(f"Analysis failed: {status_data.get('error_msg')}")
                                 break
                     
@@ -288,7 +307,7 @@ if uploaded_file is not None:
                             
                             with r1c1:
                                 st.markdown('<div class="glass-card" style="text-align:center; height:100%;">', unsafe_allow_html=True)
-                                st.plotly_chart(create_gauge_chart(s['authenticity_score'], "AUTHENTICITY SCORE"), use_container_width=True)
+                                st.plotly_chart(create_gauge_chart(s['authenticity_score'], "AUTHENTICITY SCORE"), width="stretch")
                                 
                                 txt_color = "#006c49" if s['authenticity_score'] >= 80 else "#ef9900" if s['authenticity_score'] >= 50 else "#ba1a1a"
                                 st.markdown(f"<p style='color:{txt_color}; font-family:Geist; font-weight:600; font-size:1.2rem;'>{s['interpretation']}</p>", unsafe_allow_html=True)
@@ -297,7 +316,7 @@ if uploaded_file is not None:
                             with r1c2:
                                 st.markdown('<div class="glass-card" style="text-align:center; height:100%;">', unsafe_allow_html=True)
                                 st.markdown("<h3 style='color:#00236f; font-size:1rem; letter-spacing:1px; margin-bottom:0;'>DIMENSIONAL ANALYSIS</h3>", unsafe_allow_html=True)
-                                st.plotly_chart(create_radar_chart(s['plagiarism_score'], s['ai_probability'], s['authorship_consistency']), use_container_width=True)
+                                st.plotly_chart(create_radar_chart(s['plagiarism_score'], s['ai_probability'], s['authorship_consistency']), width="stretch")
                                 st.markdown('</div>', unsafe_allow_html=True)
                             
                             st.markdown("<br>", unsafe_allow_html=True)
