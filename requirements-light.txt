@@ -1,0 +1,36 @@
+# =============================================
+# Authenticity Validator of Academia
+# Lightweight Requirements for Fast Testing
+# =============================================
+
+# --- Web Framework ---
+fastapi
+uvicorn[standard]
+python-multipart
+
+# --- File Parsing ---
+python-docx
+pdfminer.six
+
+# --- ML Fallbacks ---
+scikit-learn
+numpy
+
+# --- Database ---
+sqlalchemy
+aiosqlite
+
+# --- Report Generation ---
+reportlab
+jinja2
+
+# --- Utilities ---
+python-dotenv
+pydantic
+httpx
+aiofiles
+colorlog
+
+# --- Frontend ---
+streamlit
+pandas
