@@ -11,14 +11,26 @@ load_dotenv()
 
 # ─── Base Paths ───────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent
-UPLOAD_DIR = BASE_DIR / "uploads"
-REPORT_DIR = BASE_DIR / "reports"
 
-UPLOAD_DIR.mkdir(exist_ok=True)
-REPORT_DIR.mkdir(exist_ok=True)
+# Check if running on a cloud platform (where current dir might be restricted)
+IS_CLOUD = os.getenv("STREAMLIT_RUNTIME") or os.getenv("RENDER") or os.getenv("PORT")
+
+if IS_CLOUD:
+    TEMP_DIR = Path("/tmp/ava")
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
+    UPLOAD_DIR = TEMP_DIR / "uploads"
+    REPORT_DIR = TEMP_DIR / "reports"
+    DB_PATH = TEMP_DIR / "academia.db"
+else:
+    UPLOAD_DIR = BASE_DIR / "uploads"
+    REPORT_DIR = BASE_DIR / "reports"
+    DB_PATH = BASE_DIR / "academia.db"
+
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ─── Database ─────────────────────────────────────────────────────
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{BASE_DIR / 'academia.db'}")
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{DB_PATH}")
 
 # ─── File Handling ────────────────────────────────────────────────
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt"}
