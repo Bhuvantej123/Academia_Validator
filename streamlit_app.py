@@ -38,19 +38,26 @@ if not is_port_open(8000):
             st.warning(f"Note: Spacy model setup encountered an issue: {e}")
 
         # 1. Start the FastAPI server as a background process
+        # We use a longer timeout for cloud environments with slow startup
         backend_proc = subprocess.Popen(
-            [sys.executable, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"],
+            [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8000"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1
+            text=True
         )
-        # Give it a few seconds to warm up
-        time.sleep(5)
-        if is_port_open(8000):
-            st.toast("Backend system online.", icon="🚀")
-        else:
-            st.error("Backend failed to start. Manual intervention required.")
+        
+        # Poll for port to open
+        max_retries = 20
+        for i in range(max_retries):
+            time.sleep(2)
+            if is_port_open(8000):
+                st.toast("Backend system online.", icon="🚀")
+                break
+            if i == max_retries - 1:
+                st.error("Backend failed to start after 40s.")
+                # Show the last few lines of the backend output
+                out, _ = backend_proc.communicate(timeout=1)
+                st.code(out[-1000:], language="text")
 else:
     # Optional: check if it's healthy
     pass
