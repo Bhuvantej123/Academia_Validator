@@ -45,7 +45,13 @@ templates = Jinja2Templates(directory="templates")
 
 @app.on_event("startup")
 async def startup_event():
-    await init_db()
+    try:
+        log.info("FORCING DB INIT...")
+        await init_db()
+        log.info("DB INIT SUCCESSFUL")
+    except Exception as e:
+        log.error(f"FATAL: Database failed to initialize: {e}")
+        # We don't exit, but this will cause later requests to fail visibly
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard(request: Request):

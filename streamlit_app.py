@@ -266,10 +266,33 @@ st.markdown("<p style='font-size: 1.1rem; color: #a0a0a0; margin-top: 0; font-fa
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Upload Area
-st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-uploaded_file = st.file_uploader("Drop your documents here (PDF, DOCX, TXT)", type=["txt", "pdf", "docx"])
-st.markdown('</div>', unsafe_allow_html=True)
+# Tabs for Main View and Diagnostics
+tab_main, tab_diag = st.tabs(["[TERMINAL]", "[DIAGNOSTICS]"])
+
+with tab_diag:
+    st.markdown("### Backend System Status")
+    if st.button("Run System Check"):
+        try:
+            health_res = httpx.get(f"{API_BASE}/health", timeout=5.0)
+            if health_res.status_code == 200:
+                st.success("Backend is responding correctly.")
+                st.json(health_res.json())
+            else:
+                st.error(f"Backend returned status {health_res.status_code}")
+                st.code(health_res.text)
+        except Exception as e:
+            st.error(f"Could not reach backend: {e}")
+    
+    st.markdown("### Environment Info")
+    st.write(f"Python: {sys.version}")
+    st.write(f"CWD: {os.getcwd()}")
+    st.write(f"API Base: {API_BASE}")
+
+with tab_main:
+    # Upload Area
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("Drop your documents here (PDF, DOCX, TXT)", type=["txt", "pdf", "docx"])
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if uploaded_file is not None:
     st.markdown("<br>", unsafe_allow_html=True)
