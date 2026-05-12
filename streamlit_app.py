@@ -270,18 +270,32 @@ st.markdown("<br>", unsafe_allow_html=True)
 tab_main, tab_diag = st.tabs(["[TERMINAL]", "[DIAGNOSTICS]"])
 
 with tab_diag:
-    st.markdown("### Backend System Status")
-    if st.button("Run System Check"):
-        try:
-            health_res = httpx.get(f"{API_BASE}/health", timeout=5.0)
-            if health_res.status_code == 200:
-                st.success("Backend is responding correctly.")
-                st.json(health_res.json())
-            else:
-                st.error(f"Backend returned status {health_res.status_code}")
-                st.code(health_res.text)
-        except Exception as e:
-            st.error(f"Could not reach backend: {e}")
+    st.markdown("### Backend System Control")
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("Run System Check", use_container_width=True):
+            try:
+                health_res = httpx.get(f"{API_BASE}/health", timeout=5.0)
+                if health_res.status_code == 200:
+                    st.success("Backend is responding correctly.")
+                    st.json(health_res.json())
+                else:
+                    st.error(f"Backend returned status {health_res.status_code}")
+                    st.code(health_res.text)
+            except Exception as e:
+                st.error(f"Could not reach backend: {e}")
+    
+    with col_b:
+        if st.button("RESTART BACKEND SYSTEM", type="primary", use_container_width=True):
+            with st.spinner("Terminating legacy processes..."):
+                # Force kill anything on port 8000
+                if sys.platform == "win32":
+                    os.system("taskkill /f /im uvicorn.exe")
+                else:
+                    os.system("fuser -k 8000/tcp")
+                time.sleep(2)
+                st.info("System cleared. Refresh the page to trigger auto-start.")
+                st.rerun()
     
     st.markdown("### Environment Info")
     st.write(f"Python: {sys.version}")
