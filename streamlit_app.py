@@ -8,6 +8,10 @@ import httpx
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import subprocess
+import socket
+import os
+import sys
 
 API_BASE = "http://127.0.0.1:8000/api/v1"
 
@@ -17,6 +21,32 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# ─── Backend Auto-Start Logic ──────────────────────────────────────────
+def is_port_open(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('127.0.0.1', port)) == 0
+
+if not is_port_open(8000):
+    with st.spinner("Initializing AVA Intelligence Backend..."):
+        # Start the FastAPI server as a background process
+        # We use sys.executable to ensure we use the same python environment
+        backend_proc = subprocess.Popen(
+            [sys.executable, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
+        )
+        # Give it a few seconds to warm up
+        time.sleep(5)
+        if is_port_open(8000):
+            st.toast("Backend system online.", icon="🚀")
+        else:
+            st.error("Backend failed to start. Manual intervention required.")
+else:
+    # Optional: check if it's healthy
+    pass
 
 # ─── Stitch Design System CSS (Light Theme) ────────────────────────────
 st.markdown("""
