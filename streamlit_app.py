@@ -12,6 +12,7 @@ import subprocess
 import socket
 import os
 import sys
+import psutil
 
 API_BASE = "http://127.0.0.1:8000/api/v1"
 
@@ -288,11 +289,19 @@ with tab_diag:
     with col_b:
         if st.button("RESTART BACKEND SYSTEM", type="primary", use_container_width=True):
             with st.spinner("Terminating legacy processes..."):
-                # Force kill anything on port 8000
-                if sys.platform == "win32":
-                    os.system("taskkill /f /im uvicorn.exe")
-                else:
-                    os.system("fuser -k 8000/tcp")
+                # Kill uvicorn processes
+                current_pid = os.getpid()
+                for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                    try:
+                        # Don't kill ourselves (Streamlit)
+                        if proc.info['pid'] == current_pid:
+                            continue
+                        # Look for uvicorn or our main app
+                        cmd = " ".join(proc.info['cmdline'] or [])
+                        if "uvicorn" in cmd or "main:app" in cmd:
+                            proc.kill()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
                 time.sleep(2)
                 st.info("System cleared. Refresh the page to trigger auto-start.")
                 st.rerun()
