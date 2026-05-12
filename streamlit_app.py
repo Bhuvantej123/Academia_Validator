@@ -420,7 +420,11 @@ if uploaded_file is not None:
                                 render_flagged(report["details"]["authorship"], "style deviations", "#b026ff")
                                 
                 else:
-                    st.error(f"Failed to upload: {response.text}")
+                    try:
+                        err_detail = response.json().get('detail', response.text)
+                        st.error(f"Failed to upload: {err_detail}")
+                    except:
+                        st.error(f"Failed to upload: {response.text}")
                     
             except httpx.ConnectError:
                 st.error("Failed to connect to backend. Make sure FastAPI is running on port 8000.")

@@ -6,6 +6,7 @@ Authenticity Validator of Academia
 import json
 import uuid
 import asyncio
+import os
 from pathlib import Path
 from fastapi import FastAPI, File, UploadFile, Depends, BackgroundTasks, HTTPException
 from fastapi.responses import JSONResponse
@@ -49,6 +50,25 @@ async def startup_event():
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/api/v1/health")
+async def health_check():
+    """Verify backend and filesystem health."""
+    health = {
+        "status": "online",
+        "uploads_dir": UPLOAD_DIR.exists(),
+        "reports_dir": REPORT_DIR.exists(),
+        "writable": os.access(Path("."), os.W_OK)
+    }
+    return health
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    log.error(f"GLOBAL ERROR: {str(exc)}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal Server Error", "detail": str(exc)}
+    )
 
 # ─── Background Processing Pipeline ────────────────────────────────
 
@@ -155,14 +175,18 @@ async def upload_document(
         buffer.write(await file.read())
 
     # Create DB record
-    job = AnalysisJob(
-        job_id=job_id,
-        filename=file.filename,
-        file_type=ext,
-        status="pending"
-    )
-    db.add(job)
-    await db.commit()
+    try:
+        job = AnalysisJob(
+            job_id=job_id,
+            filename=file.filename,
+            file_type=ext,
+            status="pending"
+        )
+        db.add(job)
+        await db.commit()
+    except Exception as e:
+        log.error(f"DB Error during upload: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     # Dispatch background task
     # Note: we need a separate session for the background task
