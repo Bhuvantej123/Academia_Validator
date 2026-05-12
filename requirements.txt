@@ -1,16 +1,9 @@
---extra-index-url https://download.pytorch.org/whl/cpu
-
-# --- Web Framework ---
 fastapi
 uvicorn[standard]
 python-multipart
-
-# --- File Parsing ---
 PyMuPDF
 python-docx
 pdfminer.six
-
-# --- NLP & ML ---
 nltk
 spacy
 transformers
@@ -18,29 +11,15 @@ sentence-transformers
 torch
 scikit-learn
 numpy
-
-# --- spacy models ---
-https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
-
-# --- Database ---
 sqlalchemy
 aiosqlite
-
-# --- Report Generation ---
 reportlab
 jinja2
-
-# --- Utilities ---
 python-dotenv
 pydantic
 httpx
 aiofiles
 colorlog
-
-# --- Frontend ---
 streamlit
 pandas
 plotly
-
-# --- Production ---
-gunicorn

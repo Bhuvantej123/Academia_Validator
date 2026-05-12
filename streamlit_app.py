@@ -29,8 +29,15 @@ def is_port_open(port):
 
 if not is_port_open(8000):
     with st.spinner("Initializing AVA Intelligence Backend..."):
-        # Start the FastAPI server as a background process
-        # We use sys.executable to ensure we use the same python environment
+        # 0. Ensure spacy model is present
+        try:
+            import spacy
+            if not spacy.util.is_package("en_core_web_sm"):
+                subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+        except Exception as e:
+            st.warning(f"Note: Spacy model setup encountered an issue: {e}")
+
+        # 1. Start the FastAPI server as a background process
         backend_proc = subprocess.Popen(
             [sys.executable, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"],
             stdout=subprocess.PIPE,
